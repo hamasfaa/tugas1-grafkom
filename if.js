@@ -10,9 +10,14 @@ var brickHeight = 1.0;
 var brickDepth = 0.2;
 var mortarThickness = 0.02;
 
-var wallWidth = 9.0;
+var wallWidth = 6.50;
 var wallHeight = 3.0;
 var wallDepth = 1.0;
+
+var letterHeight = 3.0;
+var letterWidth = 1.0;
+var letterDepth = 1.0;
+var letterSpacing = 0.5;
 
 var near = -20;
 var far = 20;
@@ -41,6 +46,9 @@ var brickColors = [
 ];
 
 var mortarColor = vec4(0.8, 0.8, 0.75, 1.0);
+var letterColor = vec4(26 / 255, 65 / 255, 132 / 255, 1.0);
+var letterBackColor = vec4(68 / 255, 75 / 255, 68 / 255, 1.0);
+
 
 window.onload = function init() {
     canvas = document.getElementById("gl-canvas");
@@ -56,6 +64,7 @@ window.onload = function init() {
     gl.useProgram(program);
 
     createBrickWall();
+    createLetters();
 
     var cBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
@@ -79,6 +88,61 @@ window.onload = function init() {
     initControls();
 
     render();
+}
+
+function createLetters() {
+    var letterY = wallHeight / 2 - 0.97;
+    var totalLetterWidth = 2 * letterWidth + letterSpacing;
+    var startX = -totalLetterWidth / 2 - 1;
+    var letterZ = -wallDepth / 2;
+
+    // Buat huruf "I"
+    createLetterI(startX, letterY, letterZ);
+
+    // Buat huruf "F"
+    createLetterF(startX + letterWidth + letterSpacing, letterY, letterZ);
+}
+
+function createLetterI(x, y, z) {
+    var thickness = 0.3;
+
+    createLetterBlock(x + letterWidth / 2 - thickness / 2, y, z, thickness, letterHeight, letterDepth);
+}
+
+function createLetterF(x, y, z) {
+    var thickness = 0.3;
+
+    // Garis vertikal kiri huruf F
+    createLetterBlock(x, y, z, thickness, letterHeight, letterDepth);
+
+    // Garis horizontal atas
+    createLetterBlock(x, y + letterHeight - thickness, z, letterWidth * 1.5, thickness, letterDepth);
+
+    // Garis horizontal tengah
+    createLetterBlock(x, y + letterHeight / 2 - thickness / 2, z, letterWidth * 2.75, thickness, letterDepth);
+}
+
+function createLetterBlock(x, y, z, width, height, depth) {
+    var vertices = [
+        // Front face
+        vec4(x, y, z + wallDepth, 1.0),
+        vec4(x + width, y, z + wallDepth, 1.0),
+        vec4(x + width, y + height, z + wallDepth, 1.0),
+        vec4(x, y + height, z + wallDepth, 1.0),
+
+        // Back face
+        vec4(x, y, z, 1.0),
+        vec4(x, y + height, z, 1.0),
+        vec4(x + width, y + height, z, 1.0),
+        vec4(x + width, y, z, 1.0)
+    ];
+
+    cubeFace(vertices[1], vertices[0], vertices[3], vertices[2], letterColor); // front
+    cubeFace(vertices[2], vertices[3], vertices[5], vertices[6], letterColor); // right  
+    cubeFace(vertices[3], vertices[0], vertices[4], vertices[5], letterColor); // top
+    cubeFace(vertices[6], vertices[5], vertices[4], vertices[7], letterBackColor); // back
+    cubeFace(vertices[4], vertices[0], vertices[1], vertices[7], letterColor); // left
+    cubeFace(vertices[7], vertices[1], vertices[2], vertices[6], letterColor); // bottom
 }
 
 function createBrickWall() {
