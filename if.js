@@ -10,11 +10,11 @@ var brickHeight = 1.0;
 var brickDepth = 0.2;
 var mortarThickness = 0.02;
 
-var wallWidth = 6.50;
+var wallWidth = 6.0;
 var wallHeight = 3.0;
 var wallDepth = 1.0;
 
-var letterHeight = 3.0;
+var letterHeight = 3.1;
 var letterWidth = 1.0;
 var letterDepth = 1.0;
 var letterSpacing = 0.5;
@@ -93,7 +93,7 @@ window.onload = function init() {
 function createLetters() {
     var letterY = wallHeight / 2 - 0.97;
     var totalLetterWidth = 2 * letterWidth + letterSpacing;
-    var startX = -totalLetterWidth / 2 - 1;
+    var startX = -totalLetterWidth / 2 - 1.3;
     var letterZ = -wallDepth / 2;
 
     // Buat huruf "I"
@@ -104,22 +104,22 @@ function createLetters() {
 }
 
 function createLetterI(x, y, z) {
-    var thickness = 0.3;
+    var thickness = 0.5;
 
     createLetterBlock(x + letterWidth / 2 - thickness / 2, y, z, thickness, letterHeight, letterDepth);
 }
 
 function createLetterF(x, y, z) {
-    var thickness = 0.3;
+    var thickness = 0.5;
 
     // Garis vertikal kiri huruf F
     createLetterBlock(x, y, z, thickness, letterHeight, letterDepth);
 
     // Garis horizontal atas
-    createLetterBlock(x, y + letterHeight - thickness, z, letterWidth * 1.5, thickness, letterDepth);
+    createLetterBlock(x, y + letterHeight - thickness, z, letterWidth * 1.8, thickness, letterDepth);
 
     // Garis horizontal tengah
-    createLetterBlock(x, y + letterHeight / 2 - thickness / 2, z, letterWidth * 2.75, thickness, letterDepth);
+    createLetterBlock(x, y + letterHeight / 2 - thickness / 2, z, letterWidth * 3.3, thickness, letterDepth);
 }
 
 function createLetterBlock(x, y, z, width, height, depth) {
@@ -351,9 +351,7 @@ function initControls() {
 
     // Rotation Y control
     var rotateYSlider = document.getElementById("rotateY");
-    rotationY = 15;
     var rotateYValue = document.getElementById("rotateYValue");
-    rotateYValue.innerHTML = "15°";
     rotateYSlider.oninput = function () {
         rotationY = parseFloat(this.value);
         rotateYValue.innerHTML = rotationY + "°";
@@ -371,7 +369,7 @@ function initControls() {
 function resetView() {
     zoomLevel = 1.0;
     rotationX = 0.0;
-    rotationY = 15.0;
+    rotationY = 0.0;
     rotationZ = 0.0;
     autoRotating = false;
 
