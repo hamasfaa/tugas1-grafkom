@@ -9,6 +9,16 @@
             padding: 20px;
             background-color: #f0f0f0;
             font-family: Arial, sans-serif;
+            text-align: center; 
+        }
+
+        .main-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px; 
+            margin-bottom: 20px;
+            flex-wrap: wrap; 
         }
 
         canvas {
@@ -16,8 +26,17 @@
             background-color: white;
         }
 
+        .reference-photo {
+            text-align: center;
+        }
+
+        .reference-photo img {
+            height: 400px; 
+            width: auto;  
+            border: 2px solid #333;
+        }
+
         .controls {
-            margin-top: 20px;
             text-align: center;
         }
 
@@ -47,9 +66,20 @@
 
 <body>
     <h1>Simbol IF 3D Interaktif</h1>
-    <canvas id="gl-canvas" width="800" height="600">
-        Browser Anda tidak mendukung WebGL
-    </canvas>
+
+    <div class="main-container">
+        <div class="canvas-container">
+            <canvas id="gl-canvas" width="800" height="600">
+                Browser Anda tidak mendukung WebGL
+            </canvas>
+        </div>
+
+        <div class="reference-photo">
+            <h2>Foto Referensi</h2>
+            <img src="IF-LOGO.jpg" alt="Foto Referensi Logo IF">
+        </div>
+    </div>
+
 
     <div class="controls">
         <div class="control-group">
@@ -82,7 +112,6 @@
         <button onclick="autoRotate()">Auto Rotate</button>
     </div>
 
-    <!-- Vertex Shader -->
     <script id="vertex-shader" type="x-shader/x-vertex">
         attribute vec4 vPosition;
         attribute vec4 vColor;
@@ -98,7 +127,6 @@
         }
     </script>
 
-    <!-- Fragment Shader -->
     <script id="fragment-shader" type="x-shader/x-fragment">
         precision mediump float;
         
