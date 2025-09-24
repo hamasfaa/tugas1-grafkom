@@ -1,9 +1,15 @@
 var canvas;
 var gl;
 
-var numVertices = 0;
-var points = [];
+// --- Data Model ---
+// Kita sekarang memisahkan data menjadi tiga bagian utama:
+// 1. vertices: Daftar posisi vertex yang unik.
+// 2. colors: Daftar warna yang sesuai untuk setiap vertex unik.
+// 3. indices: Daftar indeks yang mendefinisikan segitiga.
+var vertices = [];
 var colors = [];
+var indices = [];
+var numElements = 0; // Menggantikan numVertices, untuk IBO
 
 var brickWidth = 3.0;
 var brickHeight = 1.0;
@@ -34,15 +40,21 @@ var zoomLevel = 1.0;
 var rotationX = 0.0;
 var rotationY = 0.0;
 var rotationZ = 0.0;
+var translationX = 0.0;
+var translationY = 0.0;
 var autoRotating = false;
 
+var vBuffer;
+var cBuffer;
+var iBuffer; // Buffer untuk Indeks (IBO)
+
 var brickColors = [
-    vec4(60 / 255, 56 / 255, 47 / 255, 1.0),     // rgba(60,56,47)
-    vec4(63 / 255, 59 / 255, 50 / 255, 1.0),    // rgba(63,59,50)
-    vec4(77 / 255, 69 / 255, 56 / 255, 1.0),    // rgba(77,69,56)
-    vec4(103 / 255, 99 / 255, 88 / 255, 1.0),   // rgba(103,99,88)
-    vec4(125 / 255, 113 / 255, 97 / 255, 1.0),  // rgba(125,113,97)
-    vec4(128 / 255, 119 / 255, 102 / 255, 1.0), // rgba(128,119,102)
+    vec4(60 / 255, 56 / 255, 47 / 255, 1.0),
+    vec4(63 / 255, 59 / 255, 50 / 255, 1.0),
+    vec4(77 / 255, 69 / 255, 56 / 255, 1.0),
+    vec4(103 / 255, 99 / 255, 88 / 255, 1.0),
+    vec4(125 / 255, 113 / 255, 97 / 255, 1.0),
+    vec4(128 / 255, 119 / 255, 102 / 255, 1.0),
 ];
 
 var mortarColor = vec4(0.8, 0.8, 0.75, 1.0);
@@ -63,31 +75,47 @@ window.onload = function init() {
     var program = initShaders(gl, "vertex-shader", "fragment-shader");
     gl.useProgram(program);
 
-    createBrickWall();
-    createLetters();
+    // Membuat geometri (vertices, colors, dan indices)
+    createScene();
 
-    var cBuffer = gl.createBuffer();
+    // --- Setup Buffers ---
+
+    // 1. Color Buffer (VBO untuk warna)
+    cBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
-
     var vColor = gl.getAttribLocation(program, "vColor");
     gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vColor);
 
-    var vBuffer = gl.createBuffer();
+    // 2. Vertex Buffer (VBO untuk posisi)
+    vBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
-
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.DYNAMIC_DRAW);
     var vPosition = gl.getAttribLocation(program, "vPosition");
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
+
+    // 3. Index Buffer (IBO)
+    iBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
     modelViewMatrixLoc = gl.getUniformLocation(program, "uModelViewMatrix");
     projectionMatrixLoc = gl.getUniformLocation(program, "uProjectionMatrix");
 
     initControls();
-
     render();
+}
+
+function createScene() {
+    vertices = [];
+    colors = [];
+    indices = [];
+    numElements = 0;
+
+    createBrickWall();
+    createLetters();
 }
 
 function createLetters() {
@@ -96,72 +124,108 @@ function createLetters() {
     var startX = -totalLetterWidth / 2 - 1.3;
     var letterZ = -wallDepth / 2;
 
-    // Buat huruf "I"
     createLetterI(startX, letterY, letterZ);
-
-    // Buat huruf "F"
     createLetterF(startX + letterWidth + letterSpacing, letterY, letterZ);
 }
 
+// Fungsi quad sekarang membuat indeks untuk dua segitiga
+function quad(a, b, c, d, color) {
+    var localVertices = [a, b, c, d];
+    var baseIndex = vertices.length;
+
+    for (var i = 0; i < localVertices.length; i++) {
+        vertices.push(localVertices[i]);
+        colors.push(color);
+    }
+
+    // Menambahkan indeks untuk dua segitiga
+    indices.push(baseIndex, baseIndex + 1, baseIndex + 2);
+    indices.push(baseIndex, baseIndex + 2, baseIndex + 3);
+    numElements += 6;
+}
+
+// Fungsi createCube sekarang lebih efisien
+function createCube(transformMatrix, color, backColor) {
+    var baseVertices = [
+        vec4(-0.5, -0.5, 0.5, 1.0),
+        vec4(-0.5, 0.5, 0.5, 1.0),
+        vec4(0.5, 0.5, 0.5, 1.0),
+        vec4(0.5, -0.5, 0.5, 1.0),
+        vec4(-0.5, -0.5, -0.5, 1.0),
+        vec4(-0.5, 0.5, -0.5, 1.0),
+        vec4(0.5, 0.5, -0.5, 1.0),
+        vec4(0.5, -0.5, -0.5, 1.0)
+    ];
+
+    var transformedVertices = [];
+    for (var i = 0; i < baseVertices.length; i++) {
+        var temp = vec4();
+        for (var j = 0; j < 4; j++) {
+            temp[j] =
+                transformMatrix[j][0] * baseVertices[i][0] +
+                transformMatrix[j][1] * baseVertices[i][1] +
+                transformMatrix[j][2] * baseVertices[i][2] +
+                transformMatrix[j][3] * baseVertices[i][3];
+        }
+        transformedVertices.push(temp);
+    }
+
+    var baseIndex = vertices.length;
+    for (var k = 0; k < transformedVertices.length; k++) {
+        vertices.push(transformedVertices[k]);
+        colors.push(k === 4 || k === 5 || k === 6 || k === 7 ? (backColor || color) : color);
+    }
+    
+    var localIndices = [
+        1, 0, 3, 1, 3, 2, // Front
+        2, 3, 7, 2, 7, 6, // Right
+        3, 0, 4, 3, 4, 7, // Bottom
+        6, 5, 1, 6, 1, 2, // Top
+        4, 5, 6, 4, 6, 7, // Back
+        5, 4, 0, 5, 0, 1  // Left
+    ];
+
+    for (var l = 0; l < localIndices.length; l++) {
+        indices.push(baseIndex + localIndices[l]);
+    }
+    numElements += localIndices.length;
+}
+
+
 function createLetterI(x, y, z) {
     var thickness = 0.5;
-
-    createLetterBlock(x + letterWidth / 2 - thickness / 2, y, z, thickness, letterHeight, letterDepth);
+    var transform = mult(translate(x + letterWidth / 2, y + letterHeight / 2, z), scale(thickness, letterHeight, letterDepth));
+    createCube(transform, letterColor, letterBackColor);
 }
 
 function createLetterF(x, y, z) {
     var thickness = 0.5;
-
-    // Garis vertikal kiri huruf F
-    createLetterBlock(x, y, z, thickness, letterHeight, letterDepth);
-
-    // Garis horizontal atas
-    createLetterBlock(x, y + letterHeight - thickness, z, letterWidth * 1.8, thickness, letterDepth);
-
-    // Garis horizontal tengah
-    createLetterBlock(x, y + letterHeight / 2 - thickness / 2, z, letterWidth * 3.3, thickness, letterDepth);
-}
-
-function createLetterBlock(x, y, z, width, height, depth) {
-    var vertices = [
-        // Front face
-        vec4(x, y, z + wallDepth, 1.0),
-        vec4(x + width, y, z + wallDepth, 1.0),
-        vec4(x + width, y + height, z + wallDepth, 1.0),
-        vec4(x, y + height, z + wallDepth, 1.0),
-
-        // Back face
-        vec4(x, y, z, 1.0),
-        vec4(x, y + height, z, 1.0),
-        vec4(x + width, y + height, z, 1.0),
-        vec4(x + width, y, z, 1.0)
-    ];
-
-    cubeFace(vertices[1], vertices[0], vertices[3], vertices[2], letterColor); // front
-    cubeFace(vertices[2], vertices[3], vertices[5], vertices[6], letterColor); // right  
-    cubeFace(vertices[3], vertices[0], vertices[4], vertices[5], letterColor); // top
-    cubeFace(vertices[6], vertices[5], vertices[4], vertices[7], letterBackColor); // back
-    cubeFace(vertices[4], vertices[0], vertices[1], vertices[7], letterColor); // left
-    cubeFace(vertices[7], vertices[1], vertices[2], vertices[6], letterColor); // bottom
+    
+    // Batang Vertikal (Unchanged)
+    var transform1 = mult(translate(x + thickness / 2, y + letterHeight / 2, z), scale(thickness, letterHeight, letterDepth));
+    createCube(transform1, letterColor, letterBackColor);
+    
+    // Batang Horizontal Atas (Unchanged)
+    var topBarWidth = letterWidth * 1.8;
+    var transform2 = mult(translate(x + topBarWidth / 2, y + letterHeight - thickness / 2, z), scale(topBarWidth, thickness, letterDepth));
+    createCube(transform2, letterColor, letterBackColor);
+    
+    var middleBarWidth = letterWidth * 3; 
+    
+    var transform3 = mult(translate(x + middleBarWidth / 2, y + letterHeight / 2, z), scale(middleBarWidth, thickness, letterDepth));
+    createCube(transform3, letterColor, letterBackColor);
 }
 
 function createBrickWall() {
-    points = [];
-    colors = [];
-    numVertices = 0;
-
     var startX = -wallWidth / 2;
     var startY = -wallHeight / 2;
     var startZ = -wallDepth / 2;
 
     createMortarBase(startX, startY, startZ);
-
     var rowsCount = Math.floor(wallHeight / (brickHeight + mortarThickness));
-
     for (var row = 0; row < rowsCount; row++) {
         var y = startY + row * (brickHeight + mortarThickness);
         createBrickRow(startX, y, startZ, row);
-
         if (row < rowsCount - 1) {
             createMortarHorizontal(startX, y + brickHeight, startZ);
         }
@@ -169,218 +233,70 @@ function createBrickWall() {
 }
 
 function createBrickRow(startX, y, startZ, rowIndex) {
-    var offsetX = (rowIndex % 2) * (brickWidth / 2);
-    var currentX = startX + offsetX;
-    var availableWidth = wallWidth - offsetX;
+    var offsetX = (rowIndex % 2 === 1) ? brickWidth / 2 : 0;
+    for (var currentX = startX - (rowIndex % 2 === 1 ? brickWidth / 2 : 0); currentX < startX + wallWidth; ) {
+        var brickColor = brickColors[Math.floor(Math.random() * brickColors.length)];
+        var currentBrickWidth = brickWidth;
 
-    var fullBricksCount = Math.floor(availableWidth / (brickWidth + mortarThickness));
-    var usedWidth = fullBricksCount * (brickWidth + mortarThickness);
-    var remainingWidth = availableWidth - usedWidth;
-
-    if (remainingWidth > mortarThickness * 2) {
-        var sideWidth = (remainingWidth - mortarThickness) / 2;
-
-        if (offsetX > 0 && sideWidth > mortarThickness) {
-            var leftBrickWidth = Math.min(sideWidth, offsetX - mortarThickness);
-            if (leftBrickWidth > mortarThickness) {
-                var brickColor = brickColors[Math.floor(Math.random() * brickColors.length)];
-                createCustomBrick(startX, y, startZ, leftBrickWidth, brickColor);
-                createMortarVertical(startX + leftBrickWidth, y, startZ);
-                currentX = startX + leftBrickWidth + mortarThickness;
-            }
+        // Logika untuk bata di tepi
+        if (currentX < startX) {
+            currentBrickWidth = brickWidth / 2;
+            createCustomBrick(startX, y, startZ, currentBrickWidth, brickColor);
+        } else if (currentX + brickWidth > startX + wallWidth) {
+            currentBrickWidth = wallWidth - (currentX - startX);
+            createCustomBrick(currentX, y, startZ, currentBrickWidth, brickColor);
+        } else {
+            createCustomBrick(currentX, y, startZ, currentBrickWidth, brickColor);
         }
-
-        for (var i = 0; i < fullBricksCount; i++) {
-            var brickColor = brickColors[Math.floor(Math.random() * brickColors.length)];
-            createBrick(currentX, y, startZ, brickColor);
-            currentX += brickWidth;
-
-            if (i < fullBricksCount - 1) {
-                createMortarVertical(currentX, y, startZ);
-                currentX += mortarThickness;
-            }
+        
+        // Mortar vertikal
+        var mortarX = currentX + currentBrickWidth;
+        if (mortarX < startX + wallWidth) {
+           createCustomBrick(mortarX, y, startZ, mortarThickness, mortarColor, brickHeight);
         }
-
-        var rightRemainingWidth = startX + wallWidth - currentX;
-
-        if (rightRemainingWidth > mortarThickness * 2) {
-            var rightBrickWidth = rightRemainingWidth - mortarThickness;
-            if (rightBrickWidth > mortarThickness) {
-                createMortarVertical(currentX, y, startZ);
-                currentX += mortarThickness;
-                var brickColor = brickColors[Math.floor(Math.random() * brickColors.length)];
-                createCustomBrick(currentX, y, startZ, rightBrickWidth, brickColor);
-            }
-        }
-    } else {
-        for (var i = 0; i < fullBricksCount; i++) {
-            var brickColor = brickColors[Math.floor(Math.random() * brickColors.length)];
-            createBrick(currentX, y, startZ, brickColor);
-            currentX += brickWidth;
-
-            if (i < fullBricksCount - 1) {
-                createMortarVertical(currentX, y, startZ);
-                currentX += mortarThickness;
-            }
-        }
+        currentX += currentBrickWidth + mortarThickness;
     }
 }
 
-function createBrick(x, y, z, color) {
-    createCustomBrick(x, y, z, brickWidth, color);
+
+function createCustomBrick(x, y, z, width, color, height) {
+    height = height || brickHeight;
+    var transform = mult(translate(x + width / 2, y + height / 2, z + wallDepth / 2), scale(width, height, wallDepth));
+    createCube(transform, color);
 }
 
-function createCustomBrick(x, y, z, width, color) {
-    var vertices = [
-        vec4(x, y, z + wallDepth, 1.0),
-        vec4(x + width, y, z + wallDepth, 1.0),
-        vec4(x + width, y + brickHeight, z + wallDepth, 1.0),
-        vec4(x, y + brickHeight, z + wallDepth, 1.0),
-
-        vec4(x, y, z, 1.0),
-        vec4(x, y + brickHeight, z, 1.0),
-        vec4(x + width, y + brickHeight, z, 1.0),
-        vec4(x + width, y, z, 1.0)
-    ];
-
-    cubeFace(vertices[1], vertices[0], vertices[3], vertices[2], color); // front
-    cubeFace(vertices[2], vertices[3], vertices[5], vertices[6], color); // right  
-    cubeFace(vertices[3], vertices[0], vertices[4], vertices[5], color); // top
-    cubeFace(vertices[6], vertices[5], vertices[4], vertices[7], color); // back
-    cubeFace(vertices[4], vertices[0], vertices[1], vertices[7], color); // left
-    cubeFace(vertices[7], vertices[1], vertices[2], vertices[6], color); // bottom
-}
 
 function createMortarBase(x, y, z) {
-    var vertices = [
-        vec4(x, y - mortarThickness, z + wallDepth, 1.0),
-        vec4(x + wallWidth, y - mortarThickness, z + wallDepth, 1.0),
-        vec4(x + wallWidth, y, z + wallDepth, 1.0),
-        vec4(x, y, z + wallDepth, 1.0),
-
-        vec4(x, y - mortarThickness, z, 1.0),
-        vec4(x, y, z, 1.0),
-        vec4(x + wallWidth, y, z, 1.0),
-        vec4(x + wallWidth, y - mortarThickness, z, 1.0)
-    ];
-
-    cubeFace(vertices[1], vertices[0], vertices[3], vertices[2], mortarColor); // front
-    cubeFace(vertices[2], vertices[3], vertices[5], vertices[6], mortarColor); // right  
-    cubeFace(vertices[3], vertices[0], vertices[4], vertices[5], mortarColor); // top
-    cubeFace(vertices[6], vertices[5], vertices[4], vertices[7], mortarColor); // back
-    cubeFace(vertices[4], vertices[0], vertices[1], vertices[7], mortarColor); // left
-    cubeFace(vertices[7], vertices[1], vertices[2], vertices[6], mortarColor); // bottom
-}
-
-function createMortarVertical(x, y, z) {
-    var vertices = [
-        vec4(x, y, z + wallDepth, 1.0),
-        vec4(x + mortarThickness, y, z + wallDepth, 1.0),
-        vec4(x + mortarThickness, y + brickHeight, z + wallDepth, 1.0),
-        vec4(x, y + brickHeight, z + wallDepth, 1.0),
-
-        vec4(x, y, z, 1.0),
-        vec4(x, y + brickHeight, z, 1.0),
-        vec4(x + mortarThickness, y + brickHeight, z, 1.0),
-        vec4(x + mortarThickness, y, z, 1.0)
-    ];
-
-    cubeFace(vertices[1], vertices[0], vertices[3], vertices[2], mortarColor); // front
-    cubeFace(vertices[2], vertices[3], vertices[5], vertices[6], mortarColor); // right  
-    cubeFace(vertices[3], vertices[0], vertices[4], vertices[5], mortarColor); // top
-    cubeFace(vertices[6], vertices[5], vertices[4], vertices[7], mortarColor); // back
-    cubeFace(vertices[4], vertices[0], vertices[1], vertices[7], mortarColor); // left
-    cubeFace(vertices[7], vertices[1], vertices[2], vertices[6], mortarColor); // bottom
+    createCustomBrick(x, y - mortarThickness, z, wallWidth, mortarColor, mortarThickness);
 }
 
 function createMortarHorizontal(x, y, z) {
-    var vertices = [
-        vec4(x, y, z + wallDepth, 1.0),
-        vec4(x + wallWidth, y, z + wallDepth, 1.0),
-        vec4(x + wallWidth, y + mortarThickness, z + wallDepth, 1.0),
-        vec4(x, y + mortarThickness, z + wallDepth, 1.0),
-
-        vec4(x, y, z, 1.0),
-        vec4(x, y + mortarThickness, z, 1.0),
-        vec4(x + wallWidth, y + mortarThickness, z, 1.0),
-        vec4(x + wallWidth, y, z, 1.0)
-    ];
-
-    cubeFace(vertices[1], vertices[0], vertices[3], vertices[2], mortarColor); // front
-    cubeFace(vertices[2], vertices[3], vertices[5], vertices[6], mortarColor); // right  
-    cubeFace(vertices[3], vertices[0], vertices[4], vertices[5], mortarColor); // top
-    cubeFace(vertices[6], vertices[5], vertices[4], vertices[7], mortarColor); // back
-    cubeFace(vertices[4], vertices[0], vertices[1], vertices[7], mortarColor); // left
-    cubeFace(vertices[7], vertices[1], vertices[2], vertices[6], mortarColor); // bottom
-}
-
-function cubeFace(a, b, c, d, color) {
-    points.push(a);
-    colors.push(color);
-    points.push(b);
-    colors.push(color);
-    points.push(c);
-    colors.push(color);
-
-    points.push(a);
-    colors.push(color);
-    points.push(c);
-    colors.push(color);
-    points.push(d);
-    colors.push(color);
-
-    numVertices += 6;
+    createCustomBrick(x, y, z, wallWidth, mortarColor, mortarThickness);
 }
 
 function initControls() {
-    // Zoom control
     var zoomSlider = document.getElementById("zoom");
-    var zoomValue = document.getElementById("zoomValue");
-    zoomSlider.oninput = function () {
-        zoomLevel = parseFloat(this.value);
-        zoomValue.innerHTML = zoomLevel.toFixed(1);
-    };
-
-    // Rotation X control
+    zoomSlider.oninput = function () { zoomLevel = parseFloat(this.value); document.getElementById("zoomValue").innerHTML = zoomLevel.toFixed(1); };
     var rotateXSlider = document.getElementById("rotateX");
-    var rotateXValue = document.getElementById("rotateXValue");
-    rotateXSlider.oninput = function () {
-        rotationX = parseFloat(this.value);
-        rotateXValue.innerHTML = rotationX + "°";
-    };
-
-    // Rotation Y control
+    rotateXSlider.oninput = function () { rotationX = parseFloat(this.value); document.getElementById("rotateXValue").innerHTML = rotationX + "°"; };
     var rotateYSlider = document.getElementById("rotateY");
-    var rotateYValue = document.getElementById("rotateYValue");
-    rotateYSlider.oninput = function () {
-        rotationY = parseFloat(this.value);
-        rotateYValue.innerHTML = rotationY + "°";
-    };
-
-    // Rotation Z control
+    rotateYSlider.oninput = function () { rotationY = parseFloat(this.value); document.getElementById("rotateYValue").innerHTML = rotationY + "°"; };
     var rotateZSlider = document.getElementById("rotateZ");
-    var rotateZValue = document.getElementById("rotateZValue");
-    rotateZSlider.oninput = function () {
-        rotationZ = parseFloat(this.value);
-        rotateZValue.innerHTML = rotationZ + "°";
-    };
+    rotateZSlider.oninput = function () { rotationZ = parseFloat(this.value); document.getElementById("rotateZValue").innerHTML = rotationZ + "°"; };
+    var translateXSlider = document.getElementById("translateX");
+    translateXSlider.oninput = function () { translationX = parseFloat(this.value); document.getElementById("translateXValue").innerHTML = translationX.toFixed(1); };
+    var translateYSlider = document.getElementById("translateY");
+    translateYSlider.oninput = function () { translationY = parseFloat(this.value); document.getElementById("translateYValue").innerHTML = translationY.toFixed(1); };
 }
 
 function resetView() {
-    zoomLevel = 1.0;
-    rotationX = 0.0;
-    rotationY = 0.0;
-    rotationZ = 0.0;
-    autoRotating = false;
-
-    document.getElementById("zoom").value = 1.0;
-    document.getElementById("zoomValue").innerHTML = "1.0";
-    document.getElementById("rotateX").value = 0;
-    document.getElementById("rotateXValue").innerHTML = "0°";
-    document.getElementById("rotateY").value = 15;
-    document.getElementById("rotateYValue").innerHTML = "15°";
-    document.getElementById("rotateZ").value = 0;
-    document.getElementById("rotateZValue").innerHTML = "0°";
+    zoomLevel = 1.0; rotationX = 0.0; rotationY = 0.0; rotationZ = 0.0; translationX = 0.0; translationY = 0.0; autoRotating = false;
+    document.getElementById("zoom").value = 1.0; document.getElementById("zoomValue").innerHTML = "1.0";
+    document.getElementById("rotateX").value = 0; document.getElementById("rotateXValue").innerHTML = "0°";
+    document.getElementById("rotateY").value = 0; document.getElementById("rotateYValue").innerHTML = "0°";
+    document.getElementById("rotateZ").value = 0; document.getElementById("rotateZValue").innerHTML = "0°";
+    document.getElementById("translateX").value = 0; document.getElementById("translateXValue").innerHTML = "0.0";
+    document.getElementById("translateY").value = 0; document.getElementById("translateYValue").innerHTML = "0.0";
 }
 
 function autoRotate() {
@@ -390,39 +306,37 @@ function autoRotate() {
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Auto rotation
     if (autoRotating) {
         rotationY += 0.5;
         if (rotationY >= 360) rotationY = 0;
-        rotationX += 0.5;
-        if (rotationX >= 360) rotationX = 0;
-        rotationZ += 0.5;
-        if (rotationZ >= 360) rotationZ = 0;
-        document.getElementById("rotateX").value = rotationX;
-        document.getElementById("rotateXValue").innerHTML = Math.round(rotationX) + "°";
         document.getElementById("rotateY").value = rotationY;
         document.getElementById("rotateYValue").innerHTML = Math.round(rotationY) + "°";
-        document.getElementById("rotateZ").value = rotationZ;
-        document.getElementById("rotateZValue").innerHTML = Math.round(rotationZ) + "°";
     }
+
+    var translatedVertices = [];
+    for (var i = 0; i < vertices.length; i++) {
+        var p = vertices[i];
+        translatedVertices.push(vec4(p[0] + translationX, p[1] + translationY, p[2], p[3]));
+    }
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(translatedVertices));
 
     var scaledLeft = left / zoomLevel;
     var scaledRight = right / zoomLevel;
     var scaledTop = ytop / zoomLevel;
     var scaledBottom = bottom / zoomLevel;
-
     projectionMatrix = ortho(scaledLeft, scaledRight, scaledBottom, scaledTop, near, far);
+    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
     modelViewMatrix = mat4();
-
     modelViewMatrix = mult(modelViewMatrix, rotateX(radians(rotationX)));
     modelViewMatrix = mult(modelViewMatrix, rotateY(radians(rotationY)));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(radians(rotationZ)));
-
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
-    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
-    gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+    // --- Menggambar menggunakan IBO ---
+    gl.drawElements(gl.TRIANGLES, numElements, gl.UNSIGNED_SHORT, 0);
 
     requestAnimFrame(render);
 }
@@ -430,14 +344,11 @@ function render() {
 function flatten(v) {
     var n = v.length;
     var elemsAreArrays = false;
-
     if (Array.isArray(v[0])) {
         elemsAreArrays = true;
         n *= v[0].length;
     }
-
     var floats = new Float32Array(n);
-
     if (elemsAreArrays) {
         var idx = 0;
         for (var i = 0; i < v.length; ++i) {
@@ -445,13 +356,11 @@ function flatten(v) {
                 floats[idx++] = v[i][j];
             }
         }
-    }
-    else {
+    } else {
         for (var i = 0; i < v.length; ++i) {
             floats[i] = v[i];
         }
     }
-
     return floats;
 }
 
@@ -466,15 +375,17 @@ window.requestAnimFrame = (function () {
         };
 })();
 
+function radians(degrees) {
+    return degrees * Math.PI / 180.0;
+}
+
 function ortho(left, right, bottom, top, near, far) {
     if (left == right) { throw "ortho(): left and right are equal"; }
     if (bottom == top) { throw "ortho(): bottom and top are equal"; }
     if (near == far) { throw "ortho(): near and far are equal"; }
-
     var w = right - left;
     var h = top - bottom;
     var d = far - near;
-
     var result = mat4();
     result[0][0] = 2.0 / w;
     result[1][1] = 2.0 / h;
@@ -482,7 +393,6 @@ function ortho(left, right, bottom, top, near, far) {
     result[0][3] = -(left + right) / w;
     result[1][3] = -(top + bottom) / h;
     result[2][3] = -(near + far) / d;
-
     return result;
 }
 
@@ -499,9 +409,24 @@ function mat4() {
     return result;
 }
 
+function translate(x, y, z) {
+    var result = mat4();
+    result[0][3] = x;
+    result[1][3] = y;
+    result[2][3] = z;
+    return result;
+}
+
+function scale(sx, sy, sz) {
+    var result = mat4();
+    result[0][0] = sx;
+    result[1][1] = sy;
+    result[2][2] = sz;
+    return result;
+}
+
 function mult(u, v) {
     var result = mat4();
-
     for (var i = 0; i < 4; i++) {
         for (var j = 0; j < 4; j++) {
             result[i][j] = 0.0;
@@ -510,7 +435,6 @@ function mult(u, v) {
             }
         }
     }
-
     return result;
 }
 
@@ -518,12 +442,10 @@ function rotateX(theta) {
     var c = Math.cos(theta);
     var s = Math.sin(theta);
     var rx = mat4();
-
     rx[1][1] = c;
     rx[1][2] = -s;
     rx[2][1] = s;
     rx[2][2] = c;
-
     return rx;
 }
 
@@ -531,12 +453,10 @@ function rotateY(theta) {
     var c = Math.cos(theta);
     var s = Math.sin(theta);
     var ry = mat4();
-
     ry[0][0] = c;
     ry[0][2] = s;
     ry[2][0] = -s;
     ry[2][2] = c;
-
     return ry;
 }
 
@@ -544,11 +464,9 @@ function rotateZ(theta) {
     var c = Math.cos(theta);
     var s = Math.sin(theta);
     var rz = mat4();
-
     rz[0][0] = c;
     rz[0][1] = -s;
     rz[1][0] = s;
     rz[1][1] = c;
-
     return rz;
 }
