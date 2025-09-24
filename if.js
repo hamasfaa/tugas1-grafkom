@@ -1,15 +1,10 @@
 var canvas;
 var gl;
 
-// --- Data Model ---
-// Kita sekarang memisahkan data menjadi tiga bagian utama:
-// 1. vertices: Daftar posisi vertex yang unik.
-// 2. colors: Daftar warna yang sesuai untuk setiap vertex unik.
-// 3. indices: Daftar indeks yang mendefinisikan segitiga.
 var vertices = [];
 var colors = [];
 var indices = [];
-var numElements = 0; // Menggantikan numVertices, untuk IBO
+var numElements = 0; 
 
 var brickWidth = 3.0;
 var brickHeight = 1.0;
@@ -46,7 +41,7 @@ var autoRotating = false;
 
 var vBuffer;
 var cBuffer;
-var iBuffer; // Buffer untuk Indeks (IBO)
+var iBuffer;
 
 var brickColors = [
     vec4(60 / 255, 56 / 255, 47 / 255, 1.0),
@@ -124,7 +119,10 @@ function createLetters() {
     var startX = -totalLetterWidth / 2 - 1.3;
     var letterZ = -wallDepth / 2;
 
+    // Buat huruf "I"
     createLetterI(startX, letterY, letterZ);
+
+    // Buat huruf "F"
     createLetterF(startX + letterWidth + letterSpacing, letterY, letterZ);
 }
 
@@ -306,11 +304,20 @@ function autoRotate() {
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    // Auto rotation
     if (autoRotating) {
         rotationY += 0.5;
         if (rotationY >= 360) rotationY = 0;
+        rotationX += 0.5;
+        if (rotationX >= 360) rotationX = 0;
+        rotationZ += 0.5;
+        if (rotationZ >= 360) rotationZ = 0;
+        document.getElementById("rotateX").value = rotationX;
+        document.getElementById("rotateXValue").innerHTML = Math.round(rotationX) + "°";
         document.getElementById("rotateY").value = rotationY;
         document.getElementById("rotateYValue").innerHTML = Math.round(rotationY) + "°";
+        document.getElementById("rotateZ").value = rotationZ;
+        document.getElementById("rotateZValue").innerHTML = Math.round(rotationZ) + "°";
     }
 
     var translatedVertices = [];
