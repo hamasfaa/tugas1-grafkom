@@ -6,7 +6,7 @@ var colors = [];
 var indices = [];
 var numElements = 0;
 
-var brickWidth = 3.0;
+var brickWidth = 2;
 var brickHeight = 1.0;
 var brickDepth = 0.2;
 var mortarThickness = 0.02;
@@ -228,26 +228,44 @@ function createBrickWall() {
 
 function createBrickRow(startX, y, startZ, rowIndex) {
     var offsetX = (rowIndex % 2 === 1) ? brickWidth / 2 : 0;
-    for (var currentX = startX - (rowIndex % 2 === 1 ? brickWidth / 2 : 0); currentX < startX + wallWidth;) {
+
+    for (var currentX = startX - offsetX; currentX < startX + wallWidth;) {
         var brickColor = brickColors[Math.floor(Math.random() * brickColors.length)];
         var currentBrickWidth = brickWidth;
 
+        // Handle bata yang terpotong di sisi kiri
         if (currentX < startX) {
-            currentBrickWidth = brickWidth / 2;
-            createCustomBrick(startX, y, startZ, currentBrickWidth, brickColor);
-        } else if (currentX + brickWidth > startX + wallWidth) {
-            currentBrickWidth = wallWidth - (currentX - startX);
-            createCustomBrick(currentX, y, startZ, currentBrickWidth, brickColor);
-        } else {
-            createCustomBrick(currentX, y, startZ, currentBrickWidth, brickColor);
+            currentBrickWidth = brickWidth - (startX - currentX);
+            if (currentBrickWidth > 0) {
+                createCustomBrick(startX, y, startZ, currentBrickWidth, brickColor);
+                var mortarX = startX + currentBrickWidth;
+                if (mortarX < startX + wallWidth) {
+                    createCustomBrick(mortarX, y, startZ, mortarThickness, mortarColor, brickHeight);
+                }
+            }
+            currentX = startX + currentBrickWidth + mortarThickness;
+            continue;
         }
 
-        // Mortar vertikal
+        // Handle bata yang terpotong di sisi kanan
+        if (currentX + brickWidth > startX + wallWidth) {
+            currentBrickWidth = startX + wallWidth - currentX;
+            if (currentBrickWidth > 0) {
+                createCustomBrick(currentX, y, startZ, currentBrickWidth, brickColor);
+            }
+            break;
+        }
+
+        // Buat bata normal
+        createCustomBrick(currentX, y, startZ, currentBrickWidth, brickColor);
+
         var mortarX = currentX + currentBrickWidth;
         if (mortarX < startX + wallWidth) {
             createCustomBrick(mortarX, y, startZ, mortarThickness, mortarColor, brickHeight);
+            currentX = mortarX + mortarThickness;
+        } else {
+            break;
         }
-        currentX += currentBrickWidth + mortarThickness;
     }
 }
 
