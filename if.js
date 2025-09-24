@@ -4,7 +4,7 @@ var gl;
 var vertices = [];
 var colors = [];
 var indices = [];
-var numElements = 0; 
+var numElements = 0;
 
 var brickWidth = 3.0;
 var brickHeight = 1.0;
@@ -17,7 +17,7 @@ var wallDepth = 1.0;
 
 var letterHeight = 3.1;
 var letterWidth = 1.0;
-var letterDepth = 1.0;
+var letterDepth = 0.5;
 var letterSpacing = 0.5;
 
 var near = -20;
@@ -70,7 +70,6 @@ window.onload = function init() {
     var program = initShaders(gl, "vertex-shader", "fragment-shader");
     gl.useProgram(program);
 
-    // Membuat geometri (vertices, colors, dan indices)
     createScene();
 
     // --- Setup Buffers ---
@@ -117,7 +116,7 @@ function createLetters() {
     var letterY = wallHeight / 2 - 0.97;
     var totalLetterWidth = 2 * letterWidth + letterSpacing;
     var startX = -totalLetterWidth / 2 - 1.3;
-    var letterZ = -wallDepth / 2;
+    var letterZ = -wallDepth / 2 + 0.5;
 
     // Buat huruf "I"
     createLetterI(startX, letterY, letterZ);
@@ -126,7 +125,6 @@ function createLetters() {
     createLetterF(startX + letterWidth + letterSpacing, letterY, letterZ);
 }
 
-// Fungsi quad sekarang membuat indeks untuk dua segitiga
 function quad(a, b, c, d, color) {
     var localVertices = [a, b, c, d];
     var baseIndex = vertices.length;
@@ -136,13 +134,11 @@ function quad(a, b, c, d, color) {
         colors.push(color);
     }
 
-    // Menambahkan indeks untuk dua segitiga
     indices.push(baseIndex, baseIndex + 1, baseIndex + 2);
     indices.push(baseIndex, baseIndex + 2, baseIndex + 3);
     numElements += 6;
 }
 
-// Fungsi createCube sekarang lebih efisien
 function createCube(transformMatrix, color, backColor) {
     var baseVertices = [
         vec4(-0.5, -0.5, 0.5, 1.0),
@@ -173,7 +169,7 @@ function createCube(transformMatrix, color, backColor) {
         vertices.push(transformedVertices[k]);
         colors.push(k === 4 || k === 5 || k === 6 || k === 7 ? (backColor || color) : color);
     }
-    
+
     var localIndices = [
         1, 0, 3, 1, 3, 2, // Front
         2, 3, 7, 2, 7, 6, // Right
@@ -198,18 +194,18 @@ function createLetterI(x, y, z) {
 
 function createLetterF(x, y, z) {
     var thickness = 0.5;
-    
-    // Batang Vertikal (Unchanged)
+
+    // Batang Vertikal 
     var transform1 = mult(translate(x + thickness / 2, y + letterHeight / 2, z), scale(thickness, letterHeight, letterDepth));
     createCube(transform1, letterColor, letterBackColor);
-    
-    // Batang Horizontal Atas (Unchanged)
+
+    // Batang Horizontal Atas 
     var topBarWidth = letterWidth * 1.8;
     var transform2 = mult(translate(x + topBarWidth / 2, y + letterHeight - thickness / 2, z), scale(topBarWidth, thickness, letterDepth));
     createCube(transform2, letterColor, letterBackColor);
-    
-    var middleBarWidth = letterWidth * 3; 
-    
+
+    var middleBarWidth = letterWidth * 3;
+
     var transform3 = mult(translate(x + middleBarWidth / 2, y + letterHeight / 2, z), scale(middleBarWidth, thickness, letterDepth));
     createCube(transform3, letterColor, letterBackColor);
 }
@@ -232,11 +228,10 @@ function createBrickWall() {
 
 function createBrickRow(startX, y, startZ, rowIndex) {
     var offsetX = (rowIndex % 2 === 1) ? brickWidth / 2 : 0;
-    for (var currentX = startX - (rowIndex % 2 === 1 ? brickWidth / 2 : 0); currentX < startX + wallWidth; ) {
+    for (var currentX = startX - (rowIndex % 2 === 1 ? brickWidth / 2 : 0); currentX < startX + wallWidth;) {
         var brickColor = brickColors[Math.floor(Math.random() * brickColors.length)];
         var currentBrickWidth = brickWidth;
 
-        // Logika untuk bata di tepi
         if (currentX < startX) {
             currentBrickWidth = brickWidth / 2;
             createCustomBrick(startX, y, startZ, currentBrickWidth, brickColor);
@@ -246,11 +241,11 @@ function createBrickRow(startX, y, startZ, rowIndex) {
         } else {
             createCustomBrick(currentX, y, startZ, currentBrickWidth, brickColor);
         }
-        
+
         // Mortar vertikal
         var mortarX = currentX + currentBrickWidth;
         if (mortarX < startX + wallWidth) {
-           createCustomBrick(mortarX, y, startZ, mortarThickness, mortarColor, brickHeight);
+            createCustomBrick(mortarX, y, startZ, mortarThickness, mortarColor, brickHeight);
         }
         currentX += currentBrickWidth + mortarThickness;
     }
@@ -325,7 +320,7 @@ function render() {
         var p = vertices[i];
         translatedVertices.push(vec4(p[0] + translationX, p[1] + translationY, p[2], p[3]));
     }
-    
+
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, flatten(translatedVertices));
 
