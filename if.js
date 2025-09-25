@@ -314,6 +314,43 @@ function autoRotate() {
     autoRotating = !autoRotating;
 }
 
+function viewFront() {
+    rotationX = 0;
+    rotationY = 0;
+    rotationZ = 0;
+    updateControls();
+}
+
+function viewBack() {
+    rotationX = 0;
+    rotationY = 180;
+    rotationZ = 0;
+    updateControls();
+}
+
+function viewTop() {
+    rotationX = 90;
+    rotationY = 0;
+    rotationZ = 0;
+    updateControls();
+}
+
+function viewBottom() {
+    rotationX = -90;
+    rotationY = 0;
+    rotationZ = 0;
+    updateControls();
+}
+
+function updateControls() {
+    document.getElementById("rotateX").value = rotationX;
+    document.getElementById("rotateXValue").innerHTML = rotationX + "°";
+    document.getElementById("rotateY").value = rotationY;
+    document.getElementById("rotateYValue").innerHTML = rotationY + "°";
+    document.getElementById("rotateZ").value = rotationZ;
+    document.getElementById("rotateZValue").innerHTML = rotationZ + "°";
+}
+
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
