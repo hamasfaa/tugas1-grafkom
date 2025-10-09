@@ -9,16 +9,16 @@
             padding: 20px;
             background-color: #f0f0f0;
             font-family: Arial, sans-serif;
-            text-align: center; 
+            text-align: center;
         }
 
         .main-container {
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            gap: 20px; 
+            gap: 20px;
             margin-bottom: 20px;
-            flex-wrap: wrap; 
+            flex-wrap: wrap;
         }
 
         canvas {
@@ -31,8 +31,8 @@
         }
 
         .reference-photo img {
-            height: 400px; 
-            width: auto;  
+            height: 400px;
+            width: auto;
             border: 2px solid #333;
         }
 
@@ -61,7 +61,7 @@
             font-size: 14px;
             cursor: pointer;
         }
-        
+
         /* Style sederhana untuk info kelompok */
         .info-kelompok {
             margin-top: 30px;
@@ -112,13 +112,13 @@
             <input type="range" id="rotateZ" min="0" max="360" step="1" value="0">
             <span id="rotateZValue">0°</span>
         </div>
-        
+
         <div class="control-group">
             <label for="translateX">Geser X:</label>
             <input type="range" id="translateX" min="-5" max="5" step="0.1" value="0">
             <span id="translateXValue">0.0</span>
         </div>
-        
+
         <div class="control-group">
             <label for="translateY">Geser Y:</label>
             <input type="range" id="translateY" min="-3" max="3" step="0.1" value="0">
@@ -127,8 +127,105 @@
 
         <br>
 
+        <!-- Lighting Controls -->
+        <h3>Lighting Controls</h3>
+
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="enableLighting" checked onchange="toggleLighting()">
+                Enable Lighting
+            </label>
+        </div>
+
+        <div class="control-group">
+            <label for="lightPosX">Light Position X:</label>
+            <input type="range" id="lightPosX" min="-10" max="10" step="0.5" value="5">
+            <span id="lightPosXValue">5.0</span>
+        </div>
+
+        <div class="control-group">
+            <label for="lightPosY">Light Position Y:</label>
+            <input type="range" id="lightPosY" min="-10" max="10" step="0.5" value="5">
+            <span id="lightPosYValue">5.0</span>
+        </div>
+
+        <div class="control-group">
+            <label for="lightPosZ">Light Position Z:</label>
+            <input type="range" id="lightPosZ" min="-10" max="10" step="0.5" value="10">
+            <span id="lightPosZValue">10.0</span>
+        </div>
+
+        <br>
+
+        <div class="control-group">
+            <label for="ambientR">Ambient Red:</label>
+            <input type="range" id="ambientR" min="0" max="1" step="0.01" value="0.2">
+            <span id="ambientRValue">0.2</span>
+        </div>
+
+        <div class="control-group">
+            <label for="ambientG">Ambient Green:</label>
+            <input type="range" id="ambientG" min="0" max="1" step="0.01" value="0.2">
+            <span id="ambientGValue">0.2</span>
+        </div>
+
+        <div class="control-group">
+            <label for="ambientB">Ambient Blue:</label>
+            <input type="range" id="ambientB" min="0" max="1" step="0.01" value="0.2">
+            <span id="ambientBValue">0.2</span>
+        </div>
+
+        <br>
+
+        <div class="control-group">
+            <label for="diffuseR">Diffuse Red:</label>
+            <input type="range" id="diffuseR" min="0" max="1" step="0.01" value="0.8">
+            <span id="diffuseRValue">0.8</span>
+        </div>
+
+        <div class="control-group">
+            <label for="diffuseG">Diffuse Green:</label>
+            <input type="range" id="diffuseG" min="0" max="1" step="0.01" value="0.8">
+            <span id="diffuseGValue">0.8</span>
+        </div>
+
+        <div class="control-group">
+            <label for="diffuseB">Diffuse Blue:</label>
+            <input type="range" id="diffuseB" min="0" max="1" step="0.01" value="0.8">
+            <span id="diffuseBValue">0.8</span>
+        </div>
+
+        <br>
+
+        <div class="control-group">
+            <label for="specularR">Specular Red:</label>
+            <input type="range" id="specularR" min="0" max="1" step="0.01" value="1.0">
+            <span id="specularRValue">1.0</span>
+        </div>
+
+        <div class="control-group">
+            <label for="specularG">Specular Green:</label>
+            <input type="range" id="specularG" min="0" max="1" step="0.01" value="1.0">
+            <span id="specularGValue">1.0</span>
+        </div>
+
+        <div class="control-group">
+            <label for="specularB">Specular Blue:</label>
+            <input type="range" id="specularB" min="0" max="1" step="0.01" value="1.0">
+            <span id="specularBValue">1.0</span>
+        </div>
+
+        <div class="control-group">
+            <label for="shininess">Shininess:</label>
+            <input type="range" id="shininess" min="1" max="128" step="1" value="32">
+            <span id="shininessValue">32</span>
+        </div>
+
+        <br>
+
         <button onclick="resetView()">Reset View</button>
         <button onclick="autoRotate()">Auto Rotate</button>
+        <button onclick="resetLighting()">Reset Lighting</button>
         <button onclick="viewFront()">Front</button>
         <button onclick="viewBack()">Back</button>
         <button onclick="viewTop()">Bottom</button>
@@ -142,29 +239,68 @@
     </div>
 
     <script id="vertex-shader" type="x-shader/x-vertex">
-        attribute vec4 vPosition;
-        attribute vec4 vColor;
-        
-        uniform mat4 uModelViewMatrix;
-        uniform mat4 uProjectionMatrix;
-        
-        varying vec4 fColor;
-        
-        void main() {
-            gl_Position = uProjectionMatrix * uModelViewMatrix * vPosition;
-            fColor = vColor;
-        }
-    </script>
+            attribute vec4 vPosition;
+            attribute vec4 vColor;
+            attribute vec3 vNormal;
+            
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            uniform mat3 uNormalMatrix;
+            
+            varying vec4 fColor;
+            varying vec3 fNormal;
+            varying vec3 fPosition;
+            
+            void main() {
+                vec4 pos = uModelViewMatrix * vPosition;
+                gl_Position = uProjectionMatrix * pos;
+                
+                fPosition = pos.xyz;
+                fNormal = normalize(uNormalMatrix * vNormal);
+                fColor = vColor;
+            }
+        </script>
 
     <script id="fragment-shader" type="x-shader/x-fragment">
-        precision mediump float;
-        
-        varying vec4 fColor;
-        
-        void main() {
-            gl_FragColor = fColor;
-        }
-    </script>
+            precision mediump float;
+            
+            varying vec4 fColor;
+            varying vec3 fNormal;
+            varying vec3 fPosition;
+            
+            uniform vec3 uLightPosition;
+            uniform vec3 uAmbientLight;
+            uniform vec3 uDiffuseLight;
+            uniform vec3 uSpecularLight;
+            uniform float uShininess;
+            uniform bool uEnableLighting;
+            
+            void main() {
+                if (!uEnableLighting) {
+                    gl_FragColor = fColor;
+                    return;
+                }
+                
+                // Ambient component
+                vec3 ambient = uAmbientLight * fColor.rgb;
+                
+                // Diffuse component
+                vec3 N = normalize(fNormal);
+                vec3 L = normalize(uLightPosition - fPosition);
+                float diffuseFactor = max(dot(N, L), 0.0);
+                vec3 diffuse = uDiffuseLight * fColor.rgb * diffuseFactor;
+                
+                // Specular component
+                vec3 V = normalize(-fPosition); // View direction
+                vec3 R = reflect(-L, N); // Reflection vector
+                float specularFactor = pow(max(dot(R, V), 0.0), uShininess);
+                vec3 specular = uSpecularLight * specularFactor;
+                
+                // Combine all components
+                vec3 finalColor = ambient + diffuse + specular;
+                gl_FragColor = vec4(finalColor, fColor.a);
+            }
+        </script>
 
     <script type="text/javascript" src="MVnew.js"></script>
     <script type="text/javascript" src="initShaders.js"></script>
