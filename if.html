@@ -1,78 +1,24 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Simbol IF 3D Interaktif</title>
+    <title>Simbol IF 3D Interaktif with Multiple Textures</title>
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-
-        .main-container {
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        canvas {
-            border: 2px solid #333;
-            background-color: white;
-        }
-
-        .reference-photo {
-            text-align: center;
-        }
-
-        .reference-photo img {
-            height: 400px;
-            width: auto;
-            border: 2px solid #333;
-        }
-
-        .controls {
-            text-align: center;
-        }
-
-        .control-group {
-            margin: 10px;
-            display: inline-block;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        input[type="range"] {
-            width: 200px;
-        }
-
-        button {
-            padding: 8px 16px;
-            margin: 5px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        /* Style sederhana untuk info kelompok */
-        .info-kelompok {
-            margin-top: 30px;
-            padding: 10px;
-            border-top: 1px solid #ccc;
-        }
+        /* ... (all the CSS styles from the previous version remain the same) ... */
+        body { margin: 0; padding: 20px; background-color: #f0f0f0; font-family: Arial, sans-serif; text-align: center; }
+        .main-container { display: flex; justify-content: center; align-items: flex-start; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        canvas { border: 2px solid #333; background-color: white; }
+        .reference-photo { text-align: center; }
+        .reference-photo img { height: 400px; width: auto; border: 2px solid #333; }
+        .controls { text-align: center; }
+        .control-group { margin: 10px; display: inline-block; vertical-align: top; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="range"] { width: 200px; }
+        button { padding: 8px 16px; margin: 5px; font-size: 14px; cursor: pointer; }
+        .info-kelompok { margin-top: 30px; padding: 10px; border-top: 1px solid #ccc; }
     </style>
 </head>
-
 <body>
-    <h1>Simbol IF 3D Interaktif</h1>
+    <h1>Simbol IF 3D Interaktif with Multiple Textures</h1>
 
     <div class="main-container">
         <div class="canvas-container">
@@ -80,13 +26,11 @@
                 Browser Anda tidak mendukung WebGL
             </canvas>
         </div>
-
         <div class="reference-photo">
             <h2>Foto Referensi</h2>
             <img src="IF-LOGO.jpg" alt="Foto Referensi Logo IF">
         </div>
     </div>
-
 
     <div class="controls">
         <div class="control-group">
@@ -94,135 +38,60 @@
             <input type="range" id="zoom" min="0.5" max="3.0" step="0.1" value="1.0">
             <span id="zoomValue">1.0</span>
         </div>
-
         <div class="control-group">
             <label for="rotateX">Rotasi X:</label>
             <input type="range" id="rotateX" min="0" max="360" step="1" value="0">
             <span id="rotateXValue">0°</span>
         </div>
-
         <div class="control-group">
             <label for="rotateY">Rotasi Y:</label>
             <input type="range" id="rotateY" min="0" max="360" step="1" value="0">
             <span id="rotateYValue">0°</span>
         </div>
-
         <div class="control-group">
             <label for="rotateZ">Rotasi Z:</label>
             <input type="range" id="rotateZ" min="0" max="360" step="1" value="0">
             <span id="rotateZValue">0°</span>
         </div>
-
         <div class="control-group">
             <label for="translateX">Geser X:</label>
             <input type="range" id="translateX" min="-5" max="5" step="0.1" value="0">
             <span id="translateXValue">0.0</span>
         </div>
-
         <div class="control-group">
             <label for="translateY">Geser Y:</label>
             <input type="range" id="translateY" min="-3" max="3" step="0.1" value="0">
             <span id="translateYValue">0.0</span>
         </div>
+        
+        <br>
+        
+        <div class="control-group">
+            <label for="textureSelect">Pilih Texture:</label>
+            <select id="textureSelect">
+                <option value="none">Tidak Ada</option>
+                <option value="checkerboard" selected>Checkerboard</option>
+                <option value="image">Gambar Kucing</option>
+            </select>
+        </div>
 
         <br>
 
-        <!-- Lighting Controls -->
         <h3>Lighting Controls</h3>
-
-        <div class="control-group">
-            <label>
-                <input type="checkbox" id="enableLighting" checked onchange="toggleLighting()">
-                Enable Lighting
-            </label>
-        </div>
-
-        <div class="control-group">
-            <label for="lightPosX">Light Position X:</label>
-            <input type="range" id="lightPosX" min="-10" max="10" step="0.5" value="5">
-            <span id="lightPosXValue">5.0</span>
-        </div>
-
-        <div class="control-group">
-            <label for="lightPosY">Light Position Y:</label>
-            <input type="range" id="lightPosY" min="-10" max="10" step="0.5" value="5">
-            <span id="lightPosYValue">5.0</span>
-        </div>
-
-        <div class="control-group">
-            <label for="lightPosZ">Light Position Z:</label>
-            <input type="range" id="lightPosZ" min="-10" max="10" step="0.5" value="10">
-            <span id="lightPosZValue">10.0</span>
-        </div>
-
-        <br>
-
-        <div class="control-group">
-            <label for="ambientR">Ambient Red:</label>
-            <input type="range" id="ambientR" min="0" max="1" step="0.01" value="0.2">
-            <span id="ambientRValue">0.2</span>
-        </div>
-
-        <div class="control-group">
-            <label for="ambientG">Ambient Green:</label>
-            <input type="range" id="ambientG" min="0" max="1" step="0.01" value="0.2">
-            <span id="ambientGValue">0.2</span>
-        </div>
-
-        <div class="control-group">
-            <label for="ambientB">Ambient Blue:</label>
-            <input type="range" id="ambientB" min="0" max="1" step="0.01" value="0.2">
-            <span id="ambientBValue">0.2</span>
-        </div>
-
-        <br>
-
-        <div class="control-group">
-            <label for="diffuseR">Diffuse Red:</label>
-            <input type="range" id="diffuseR" min="0" max="1" step="0.01" value="0.8">
-            <span id="diffuseRValue">0.8</span>
-        </div>
-
-        <div class="control-group">
-            <label for="diffuseG">Diffuse Green:</label>
-            <input type="range" id="diffuseG" min="0" max="1" step="0.01" value="0.8">
-            <span id="diffuseGValue">0.8</span>
-        </div>
-
-        <div class="control-group">
-            <label for="diffuseB">Diffuse Blue:</label>
-            <input type="range" id="diffuseB" min="0" max="1" step="0.01" value="0.8">
-            <span id="diffuseBValue">0.8</span>
-        </div>
-
-        <br>
-
-        <div class="control-group">
-            <label for="specularR">Specular Red:</label>
-            <input type="range" id="specularR" min="0" max="1" step="0.01" value="1.0">
-            <span id="specularRValue">1.0</span>
-        </div>
-
-        <div class="control-group">
-            <label for="specularG">Specular Green:</label>
-            <input type="range" id="specularG" min="0" max="1" step="0.01" value="1.0">
-            <span id="specularGValue">1.0</span>
-        </div>
-
-        <div class="control-group">
-            <label for="specularB">Specular Blue:</label>
-            <input type="range" id="specularB" min="0" max="1" step="0.01" value="1.0">
-            <span id="specularBValue">1.0</span>
-        </div>
-
-        <div class="control-group">
-            <label for="shininess">Shininess:</label>
-            <input type="range" id="shininess" min="1" max="128" step="1" value="32">
-            <span id="shininessValue">32</span>
-        </div>
-
-        <br>
-
+        <div class="control-group"><label><input type="checkbox" id="enableLighting" checked onchange="toggleLighting()">Enable Lighting</label></div>
+        <div class="control-group"><label for="lightPosX">Light Position X:</label><input type="range" id="lightPosX" min="-10" max="10" step="0.5" value="5"><span id="lightPosXValue">5.0</span></div>
+        <div class="control-group"><label for="lightPosY">Light Position Y:</label><input type="range" id="lightPosY" min="-10" max="10" step="0.5" value="5"><span id="lightPosYValue">5.0</span></div>
+        <div class="control-group"><label for="lightPosZ">Light Position Z:</label><input type="range" id="lightPosZ" min="-10" max="10" step="0.5" value="10"><span id="lightPosZValue">10.0</span></div><br>
+        <div class="control-group"><label for="ambientR">Ambient Red:</label><input type="range" id="ambientR" min="0" max="1" step="0.01" value="0.2"><span id="ambientRValue">0.2</span></div>
+        <div class="control-group"><label for="ambientG">Ambient Green:</label><input type="range" id="ambientG" min="0" max="1" step="0.01" value="0.2"><span id="ambientGValue">0.2</span></div>
+        <div class="control-group"><label for="ambientB">Ambient Blue:</label><input type="range" id="ambientB" min="0" max="1" step="0.01" value="0.2"><span id="ambientBValue">0.2</span></div><br>
+        <div class="control-group"><label for="diffuseR">Diffuse Red:</label><input type="range" id="diffuseR" min="0" max="1" step="0.01" value="0.8"><span id="diffuseRValue">0.8</span></div>
+        <div class="control-group"><label for="diffuseG">Diffuse Green:</label><input type="range" id="diffuseG" min="0" max="1" step="0.01" value="0.8"><span id="diffuseGValue">0.8</span></div>
+        <div class="control-group"><label for="diffuseB">Diffuse Blue:</label><input type="range" id="diffuseB" min="0" max="1" step="0.01" value="0.8"><span id="diffuseBValue">0.8</span></div><br>
+        <div class="control-group"><label for="specularR">Specular Red:</label><input type="range" id="specularR" min="0" max="1" step="0.01" value="1.0"><span id="specularRValue">1.0</span></div>
+        <div class="control-group"><label for="specularG">Specular Green:</label><input type="range" id="specularG" min="0" max="1" step="0.01" value="1.0"><span id="specularGValue">1.0</span></div>
+        <div class="control-group"><label for="specularB">Specular Blue:</label><input type="range" id="specularB" min="0" max="1" step="0.01" value="1.0"><span id="specularBValue">1.0</span></div>
+        <div class="control-group"><label for="shininess">Shininess:</label><input type="range" id="shininess" min="1" max="128" step="1" value="32"><span id="shininessValue">32</span></div><br>
         <button onclick="resetView()">Reset View</button>
         <button onclick="autoRotate()">Auto Rotate</button>
         <button onclick="resetLighting()">Reset Lighting</button>
@@ -239,72 +108,77 @@
     </div>
 
     <script id="vertex-shader" type="x-shader/x-vertex">
-            attribute vec4 vPosition;
-            attribute vec4 vColor;
-            attribute vec3 vNormal;
+        attribute vec4 vPosition;
+        attribute vec4 vColor;
+        attribute vec3 vNormal;
+        attribute vec2 aTexCoord;
+        
+        uniform mat4 uModelViewMatrix;
+        uniform mat4 uProjectionMatrix;
+        uniform mat3 uNormalMatrix;
+        
+        varying vec4 fColor;
+        varying vec3 fNormal;
+        varying vec3 fPosition;
+        varying vec2 vTexCoord;
+        
+        void main() {
+            vec4 pos = uModelViewMatrix * vPosition;
+            gl_Position = uProjectionMatrix * pos;
             
-            uniform mat4 uModelViewMatrix;
-            uniform mat4 uProjectionMatrix;
-            uniform mat3 uNormalMatrix;
-            
-            varying vec4 fColor;
-            varying vec3 fNormal;
-            varying vec3 fPosition;
-            
-            void main() {
-                vec4 pos = uModelViewMatrix * vPosition;
-                gl_Position = uProjectionMatrix * pos;
-                
-                fPosition = pos.xyz;
-                fNormal = normalize(uNormalMatrix * vNormal);
-                fColor = vColor;
-            }
-        </script>
+            fPosition = pos.xyz;
+            fNormal = normalize(uNormalMatrix * vNormal);
+            fColor = vColor;
+            vTexCoord = aTexCoord;
+        }
+    </script>
 
     <script id="fragment-shader" type="x-shader/x-fragment">
-            precision mediump float;
-            
-            varying vec4 fColor;
-            varying vec3 fNormal;
-            varying vec3 fPosition;
-            
-            uniform vec3 uLightPosition;
-            uniform vec3 uAmbientLight;
-            uniform vec3 uDiffuseLight;
-            uniform vec3 uSpecularLight;
-            uniform float uShininess;
-            uniform bool uEnableLighting;
-            
-            void main() {
-                if (!uEnableLighting) {
-                    gl_FragColor = fColor;
-                    return;
-                }
-                
-                // Ambient component
-                vec3 ambient = uAmbientLight * fColor.rgb;
-                
-                // Diffuse component
-                vec3 N = normalize(fNormal);
-                vec3 L = normalize(uLightPosition - fPosition);
-                float diffuseFactor = max(dot(N, L), 0.0);
-                vec3 diffuse = uDiffuseLight * fColor.rgb * diffuseFactor;
-                
-                // Specular component
-                vec3 V = normalize(-fPosition); // View direction
-                vec3 R = reflect(-L, N); // Reflection vector
-                float specularFactor = pow(max(dot(R, V), 0.0), uShininess);
-                vec3 specular = uSpecularLight * specularFactor;
-                
-                // Combine all components
-                vec3 finalColor = ambient + diffuse + specular;
-                gl_FragColor = vec4(finalColor, fColor.a);
+        precision mediump float;
+        
+        varying vec4 fColor;
+        varying vec3 fNormal;
+        varying vec3 fPosition;
+        varying vec2 vTexCoord;
+        
+        uniform vec3 uLightPosition;
+        uniform vec3 uAmbientLight;
+        uniform vec3 uDiffuseLight;
+        uniform vec3 uSpecularLight;
+        uniform float uShininess;
+        uniform bool uEnableLighting;
+        
+        uniform sampler2D uTexture;
+        uniform bool uUseTexture; // Boolean to control texture usage
+        
+        void main() {
+            vec4 materialColor = fColor;
+            if (uUseTexture) {
+                materialColor = texture2D(uTexture, vTexCoord);
             }
-        </script>
+
+            if (!uEnableLighting) {
+                gl_FragColor = materialColor;
+                return;
+            }
+            
+            vec3 ambient = uAmbientLight * materialColor.rgb;
+            vec3 N = normalize(fNormal);
+            vec3 L = normalize(uLightPosition - fPosition);
+            float diffuseFactor = max(dot(N, L), 0.0);
+            vec3 diffuse = uDiffuseLight * materialColor.rgb * diffuseFactor;
+            vec3 V = normalize(-fPosition);
+            vec3 R = reflect(-L, N);
+            float specularFactor = pow(max(dot(R, V), 0.0), uShininess);
+            vec3 specular = uSpecularLight * specularFactor;
+            
+            vec3 finalColor = ambient + diffuse + specular;
+            gl_FragColor = vec4(finalColor, materialColor.a);
+        }
+    </script>
 
     <script type="text/javascript" src="MVnew.js"></script>
     <script type="text/javascript" src="initShaders.js"></script>
     <script type="text/javascript" src="if.js"></script>
 </body>
-
 </html>
