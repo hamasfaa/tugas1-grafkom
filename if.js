@@ -5,6 +5,7 @@ var vertices = [];
 var colors = [];
 var normals = [];
 var indices = [];
+var texCoords = [];
 var numElements = 0;
 
 var brickWidth = 2;
@@ -45,6 +46,7 @@ var autoRotating = false;
 var vBuffer;
 var cBuffer;
 var nBuffer;
+var tBuffer;
 var iBuffer;
 
 var lightPosition = vec3(5.0, 5.0, 10.0);
@@ -56,6 +58,13 @@ var enableLighting = true;
 
 var lightPositionLoc, ambientLightLoc, diffuseLightLoc, specularLightLoc;
 var shininessLoc, enableLightingLoc, normalMatrixLoc;
+
+// Texture variables
+var textureMode = 0; // 0: none, 1: checkerboard, 2: image
+var textureScale = 5.0;
+var textureBrightness = 1.0;
+var texture;
+var textureModeLoc, textureScaleLoc, textureBrightnessLoc, textureSamplerLoc;
 
 var brickColors = [
     vec4(60 / 255, 56 / 255, 47 / 255, 1.0),
@@ -88,7 +97,7 @@ window.onload = function init() {
 
     // --- Setup Buffers ---
 
-    // 1. Color Buffer (VBO untuk warna)
+    // 1. Color Buffer
     cBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
@@ -96,7 +105,7 @@ window.onload = function init() {
     gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vColor);
 
-    // 2. Vertex Buffer (VBO untuk posisi)
+    // 2. Vertex Buffer
     vBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.DYNAMIC_DRAW);
@@ -104,6 +113,7 @@ window.onload = function init() {
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
 
+    // 3. Normal Buffer
     nBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW);
@@ -111,7 +121,15 @@ window.onload = function init() {
     gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vNormal);
 
-    // 3. Index Buffer (IBO)
+    // 4. Texture Coordinate Buffer
+    tBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(texCoords), gl.STATIC_DRAW);
+    var vTexCoord = gl.getAttribLocation(program, "vTexCoord");
+    gl.vertexAttribPointer(vTexCoord, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vTexCoord);
+
+    // 5. Index Buffer
     iBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
@@ -127,8 +145,70 @@ window.onload = function init() {
     shininessLoc = gl.getUniformLocation(program, "uShininess");
     enableLightingLoc = gl.getUniformLocation(program, "uEnableLighting");
 
+    // Texture uniforms
+    textureModeLoc = gl.getUniformLocation(program, "uTextureMode");
+    textureScaleLoc = gl.getUniformLocation(program, "uTextureScale");
+    textureBrightnessLoc = gl.getUniformLocation(program, "uTextureBrightness");
+    textureSamplerLoc = gl.getUniformLocation(program, "uTextureSampler");
+
+    // Initialize texture
+    initTexture();
+
     initControls();
     render();
+}
+
+function initTexture() {
+    texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // Create a simple brick pattern as default texture
+    var texSize = 64;
+    var texels = new Uint8Array(4 * texSize * texSize);
+
+    for (var i = 0; i < texSize; i++) {
+        for (var j = 0; j < texSize; j++) {
+            var idx = 4 * (i * texSize + j);
+            var c = ((i / 4) % 2 == 0) ^ ((j / 4) % 2 == 0) ? 200 : 100;
+            texels[idx] = c;
+            texels[idx + 1] = c / 2;
+            texels[idx + 2] = c / 3;
+            texels[idx + 3] = 255;
+        }
+    }
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texSize, texSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, texels);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+}
+
+function loadImageTexture(url) {
+    var image = new Image();
+    image.onload = function () {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    };
+    image.src = url;
+}
+
+function createScene() {
+    vertices = [];
+    colors = [];
+    normals = [];
+    texCoords = [];
+    indices = [];
+    numElements = 0;
+
+    createBrickWall();
+    createLetters();
 }
 
 function createScene() {
@@ -159,15 +239,23 @@ function quad(a, b, c, d, color) {
     var localVertices = [a, b, c, d];
     var baseIndex = vertices.length;
 
-    // Calculate normal for this quad
     var v1 = subtract3(b, a);
     var v2 = subtract3(c, a);
     var normal = normalize3(cross3(v1, v2));
+
+    // Define texture coordinates for the quad
+    var texCoordArray = [
+        vec2(0, 0),
+        vec2(0, 1),
+        vec2(1, 1),
+        vec2(1, 0)
+    ];
 
     for (var i = 0; i < localVertices.length; i++) {
         vertices.push(localVertices[i]);
         colors.push(color);
         normals.push(normal);
+        texCoords.push(texCoordArray[i]);
     }
 
     indices.push(baseIndex, baseIndex + 1, baseIndex + 2);
@@ -203,12 +291,19 @@ function createCube(transformMatrix, color, backColor) {
     var baseIndex = vertices.length;
 
     var faces = [
-        { indices: [1, 0, 3, 2], normal: vec3(0, 0, 1) },   // Front
-        { indices: [2, 3, 7, 6], normal: vec3(1, 0, 0) },   // Right
-        { indices: [3, 0, 4, 7], normal: vec3(0, -1, 0) },  // Bottom
-        { indices: [6, 5, 1, 2], normal: vec3(0, 1, 0) },   // Top
-        { indices: [4, 5, 6, 7], normal: vec3(0, 0, -1) },  // Back
-        { indices: [5, 4, 0, 1], normal: vec3(-1, 0, 0) }   // Left
+        { indices: [1, 0, 3, 2], normal: vec3(0, 0, 1) },
+        { indices: [2, 3, 7, 6], normal: vec3(1, 0, 0) },
+        { indices: [3, 0, 4, 7], normal: vec3(0, -1, 0) },
+        { indices: [6, 5, 1, 2], normal: vec3(0, 1, 0) },
+        { indices: [4, 5, 6, 7], normal: vec3(0, 0, -1) },
+        { indices: [5, 4, 0, 1], normal: vec3(-1, 0, 0) }
+    ];
+
+    var texCoordArray = [
+        vec2(0, 0),
+        vec2(0, 1),
+        vec2(1, 1),
+        vec2(1, 0)
     ];
 
     for (var f = 0; f < faces.length; f++) {
@@ -219,6 +314,7 @@ function createCube(transformMatrix, color, backColor) {
             vertices.push(transformedVertices[face.indices[i]]);
             colors.push(faceColor);
             normals.push(face.normal);
+            texCoords.push(texCoordArray[i]);
         }
 
         var idx = baseIndex + f * 4;
@@ -350,23 +446,23 @@ function initControls() {
     var lightPosZSlider = document.getElementById("lightPosZ");
     lightPosZSlider.oninput = function () { lightPosition[2] = parseFloat(this.value); document.getElementById("lightPosZValue").innerHTML = this.value; };
 
-    // Ambient
     document.getElementById("ambientR").oninput = function () { ambientLight[0] = parseFloat(this.value); document.getElementById("ambientRValue").innerHTML = this.value; };
     document.getElementById("ambientG").oninput = function () { ambientLight[1] = parseFloat(this.value); document.getElementById("ambientGValue").innerHTML = this.value; };
     document.getElementById("ambientB").oninput = function () { ambientLight[2] = parseFloat(this.value); document.getElementById("ambientBValue").innerHTML = this.value; };
 
-    // Diffuse
     document.getElementById("diffuseR").oninput = function () { diffuseLight[0] = parseFloat(this.value); document.getElementById("diffuseRValue").innerHTML = this.value; };
     document.getElementById("diffuseG").oninput = function () { diffuseLight[1] = parseFloat(this.value); document.getElementById("diffuseGValue").innerHTML = this.value; };
     document.getElementById("diffuseB").oninput = function () { diffuseLight[2] = parseFloat(this.value); document.getElementById("diffuseBValue").innerHTML = this.value; };
 
-    // Specular
     document.getElementById("specularR").oninput = function () { specularLight[0] = parseFloat(this.value); document.getElementById("specularRValue").innerHTML = this.value; };
     document.getElementById("specularG").oninput = function () { specularLight[1] = parseFloat(this.value); document.getElementById("specularGValue").innerHTML = this.value; };
     document.getElementById("specularB").oninput = function () { specularLight[2] = parseFloat(this.value); document.getElementById("specularBValue").innerHTML = this.value; };
 
-    // Shininess
     document.getElementById("shininess").oninput = function () { shininess = parseFloat(this.value); document.getElementById("shininessValue").innerHTML = this.value; };
+
+    // Texture controls
+    document.getElementById("textureScale").oninput = function () { textureScale = parseFloat(this.value); document.getElementById("textureScaleValue").innerHTML = this.value; };
+    document.getElementById("textureBrightness").oninput = function () { textureBrightness = parseFloat(this.value); document.getElementById("textureBrightnessValue").innerHTML = this.value; };
 }
 
 function resetView() {
@@ -405,6 +501,36 @@ function resetLighting() {
 
     document.getElementById("shininess").value = 32; document.getElementById("shininessValue").innerHTML = "32";
     document.getElementById("enableLighting").checked = true;
+}
+
+function resetTexture() {
+    textureMode = 0;
+    textureScale = 5.0;
+    textureBrightness = 1.0;
+
+    document.getElementById("textureMode").value = "none";
+    document.getElementById("textureScale").value = 5;
+    document.getElementById("textureScaleValue").innerHTML = "5";
+    document.getElementById("textureBrightness").value = 1.0;
+    document.getElementById("textureBrightnessValue").innerHTML = "1.0";
+}
+
+function changeTextureMode() {
+    var mode = document.getElementById("textureMode").value;
+
+    switch (mode) {
+        case "none":
+            textureMode = 0;
+            break;
+        case "checkerboard":
+            textureMode = 1;
+            break;
+        case "image":
+            textureMode = 2;
+            // Load image texture - ganti dengan path image Anda
+            loadImageTexture("IF-LOGO.jpg");
+            break;
+    }
 }
 
 function toggleLighting() {
@@ -455,7 +581,6 @@ function updateControls() {
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Auto rotation
     if (autoRotating) {
         rotationY += 0.5;
         if (rotationY >= 360) rotationY = 0;
@@ -493,7 +618,6 @@ function render() {
     modelViewMatrix = mult(modelViewMatrix, rotateZ(radians(rotationZ)));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
 
-    // Calculate and set normal matrix
     var normalMatrix = mat3FromMat4(modelViewMatrix);
     gl.uniformMatrix3fv(normalMatrixLoc, false, flatten3(normalMatrix));
 
@@ -504,6 +628,15 @@ function render() {
     gl.uniform3fv(specularLightLoc, specularLight);
     gl.uniform1f(shininessLoc, shininess);
     gl.uniform1i(enableLightingLoc, enableLighting);
+
+    // Set texture uniforms
+    gl.uniform1i(textureModeLoc, textureMode);
+    gl.uniform1f(textureScaleLoc, textureScale);
+    gl.uniform1f(textureBrightnessLoc, textureBrightness);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(textureSamplerLoc, 0);
 
     gl.drawElements(gl.TRIANGLES, numElements, gl.UNSIGNED_SHORT, 0);
 
@@ -684,4 +817,8 @@ function rotateZ(theta) {
     rz[1][0] = s;
     rz[1][1] = c;
     return rz;
+}
+
+function vec2(x, y) {
+    return [x, y];
 }

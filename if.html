@@ -223,6 +223,32 @@
 
         <br>
 
+        <!-- Texture Controls -->
+        <h3>Texture Controls</h3>
+
+        <div class="control-group">
+            <label>Texture Mode:</label>
+            <select id="textureMode" onchange="changeTextureMode()">
+                <option value="none">No Texture</option>
+                <option value="checkerboard">Checkerboard</option>
+                <option value="image">Image Texture</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="textureScale">Texture Scale:</label>
+            <input type="range" id="textureScale" min="1" max="20" step="1" value="5">
+            <span id="textureScaleValue">5</span>
+        </div>
+
+        <div class="control-group">
+            <label for="textureBrightness">Texture Brightness:</label>
+            <input type="range" id="textureBrightness" min="0.1" max="2.0" step="0.1" value="1.0">
+            <span id="textureBrightnessValue">1.0</span>
+        </div>
+
+        <br>
+
         <button onclick="resetView()">Reset View</button>
         <button onclick="autoRotate()">Auto Rotate</button>
         <button onclick="resetLighting()">Reset Lighting</button>
@@ -242,6 +268,7 @@
             attribute vec4 vPosition;
             attribute vec4 vColor;
             attribute vec3 vNormal;
+            attribute vec2 vTexCoord;
             
             uniform mat4 uModelViewMatrix;
             uniform mat4 uProjectionMatrix;
@@ -250,6 +277,7 @@
             varying vec4 fColor;
             varying vec3 fNormal;
             varying vec3 fPosition;
+            varying vec2 fTexCoord;
             
             void main() {
                 vec4 pos = uModelViewMatrix * vPosition;
@@ -258,6 +286,7 @@
                 fPosition = pos.xyz;
                 fNormal = normalize(uNormalMatrix * vNormal);
                 fColor = vColor;
+                fTexCoord = vTexCoord;
             }
         </script>
 
@@ -267,6 +296,7 @@
             varying vec4 fColor;
             varying vec3 fNormal;
             varying vec3 fPosition;
+            varying vec2 fTexCoord;
             
             uniform vec3 uLightPosition;
             uniform vec3 uAmbientLight;
@@ -275,30 +305,59 @@
             uniform float uShininess;
             uniform bool uEnableLighting;
             
+            uniform bool uUseTexture;
+            uniform sampler2D uTextureSampler;
+            uniform int uTextureMode; // 0: none, 1: checkerboard, 2: image
+            uniform float uTextureScale;
+            uniform float uTextureBrightness;
+            
+            vec4 getCheckerboardColor() {
+                float scale = uTextureScale;
+                vec2 scaledCoord = fTexCoord * scale;
+                float checker = mod(floor(scaledCoord.x) + floor(scaledCoord.y), 2.0);
+                vec3 color1 = vec3(0.9, 0.9, 0.9);
+                vec3 color2 = vec3(0.3, 0.3, 0.3);
+                return vec4(mix(color1, color2, checker) * uTextureBrightness, 1.0);
+            }
+            
             void main() {
+                vec4 baseColor = fColor;
+                
+                // Apply texture if enabled
+                if (uTextureMode == 1) {
+                    // Checkerboard texture
+                    vec4 texColor = getCheckerboardColor();
+                    baseColor = mix(fColor, texColor, 0.7);
+                } else if (uTextureMode == 2) {
+                    // Image texture
+                    vec4 texColor = texture2D(uTextureSampler, fTexCoord);
+                    texColor.rgb *= uTextureBrightness;
+                    baseColor = mix(fColor, texColor, 0.8);
+                }
+                
                 if (!uEnableLighting) {
-                    gl_FragColor = fColor;
+                    gl_FragColor = baseColor;
                     return;
                 }
                 
                 // Ambient component
-                vec3 ambient = uAmbientLight * fColor.rgb;
+                vec3 ambient = uAmbientLight * baseColor.rgb;
                 
                 // Diffuse component
                 vec3 N = normalize(fNormal);
                 vec3 L = normalize(uLightPosition - fPosition);
                 float diffuseFactor = max(dot(N, L), 0.0);
-                vec3 diffuse = uDiffuseLight * fColor.rgb * diffuseFactor;
+                vec3 diffuse = uDiffuseLight * baseColor.rgb * diffuseFactor;
                 
                 // Specular component
-                vec3 V = normalize(-fPosition); // View direction
-                vec3 R = reflect(-L, N); // Reflection vector
+                vec3 V = normalize(-fPosition);
+                vec3 R = reflect(-L, N);
                 float specularFactor = pow(max(dot(R, V), 0.0), uShininess);
                 vec3 specular = uSpecularLight * specularFactor;
                 
                 // Combine all components
                 vec3 finalColor = ambient + diffuse + specular;
-                gl_FragColor = vec4(finalColor, fColor.a);
+                gl_FragColor = vec4(finalColor, baseColor.a);
             }
         </script>
 
